@@ -1,4 +1,4 @@
-const request = require('request-promise-native');
+const axios = require('axios');
 const moment = require('moment-timezone');
 
 const placeId = "C92B7B20-D7A4-11E7-B707-D8852540C4BA";
@@ -16,38 +16,37 @@ function normalizeResponseText(responseText) {
 }
 
 function getRelativeCalendarDay(date) {
-    return (moment(date).calendar()).split(" at")[0];
+    let momentConverted = moment(date).tz("America/Chicago").calendar();
+    if (momentConverted.includes("/")) {
+        momentConverted = moment(date).tz("America/Chicago").format("MMMM Do");
+    }
+    return momentConverted.split(" at")[0];
 }
 
 function convertArrayToSpokenList(array) {
     if(array.length === 1) {
         return array[0];
     } else if(array.length === 2) {
-        return array.slice(0) + " and " + array.slice(-1);
+        return array[0] + " and " + array[1];
     } else {
         return array.slice(0, array.length - 1).join(', ') + ", and " + array.slice(-1);
     }
 }
 
 async function main() {
-    const options = {
-        method: 'GET',
-        uri: `https://api.recollect.net/api/places/${placeId}/services/323/events?nomerge=1&hide=reminder_only&after=${today}&before=${endEventSearchDate}&locale=en-US`,
-        json: true // Automatically parses the JSON string in the response
-    };
-    
-    let response;
     try {
-        const collectionEventsResponse = (await request(options)).events;
-        console.log(`${collectionEventsResponse.length} total collection events upcoming`);
+        const collectionResponse = await axios.get(`https://api.recollect.net/api/places/${placeId}/services/323/events?nomerge=1&hide=reminder_only&after=${today}&before=${endEventSearchDate}&locale=en-US`);
+        const collectionEvents = collectionResponse.data.events;
+        console.log(`${collectionEvents.length} total collection events upcoming`);
         console.log('============================');
 
-        const filteredCollectionEvents = collectionEventsResponse.filter( event => event.flags[0].event_type === "pickup" );
+        const filteredCollectionEvents = collectionEvents.filter( event => event.flags[0].event_type === "pickup" );
         console.log(`${filteredCollectionEvents.length} pickup events upcoming`);
         console.log('============================');
 
         let conciseCollectionEvents = [];
         filteredCollectionEvents.forEach( (event) => { 
+            event.day = `${event.day}T06:00:00-06:00`;
             const existing = conciseCollectionEvents.filter( item => item.date == event.day );
             let servicesArray = [];
             event.flags.forEach( service => servicesArray.push(service.subject) );
