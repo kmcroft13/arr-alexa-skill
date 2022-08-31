@@ -8,7 +8,7 @@
     "ask-sdk-model": "^1.28.0",
     "axios": "^0.19.2",
     "moment": "^2.24.0",
-    "moment-timezone": "^0.5.25"
+    "moment-timezone": "^0.5.35"
   },
   "devDependencies": {},
   "scripts": {
